@@ -1,0 +1,53 @@
+use crate::{
+	Token,
+	LexerError,
+	ast,
+};
+
+// This says we are starting our lalrpop code
+grammar;
+
+// This is how we interface Logos with lalrpop
+// Usually lalrpop has it's own parser
+extern {
+	type Location = usize;
+	type Error = LexerError;
+	// This tells lalrpop what the tokens you write represent
+	// eg: To tell lalrpop we want a Token::Nat use the string 'nat'
+	enum Token {
+		"(" => Token::LParen,
+		")" => Token::RParen,
+		"nat" => Token::Nat(<u32>),
+		"id" => Token::Identifier(<String>),
+	}
+}
+
+pub Expr: ast::Expr = {
+	IdAtom,
+	NatAtom,
+	ListExpr,
+}
+
+IdAtom: ast::Expr = {
+	<s: "id"> => ast::Expr::IdentifierAtom(s),
+}
+
+NatAtom: ast::Expr = {
+	<n: "nat"> => ast::Expr::NatAtom(n),
+}
+
+ListExpr: ast::Expr = {
+	"(" <l: VectorFirstElem<BoxExpr>> ")" => ast::Expr::List(l),
+}
+
+BoxExpr: Box<ast::Expr> = {
+	<e: Expr> => Box::new(e),
+}
+
+// Parses a list of T
+VectorFirstElem<T>: Vec<T> = {
+	<mut v: (T)*> <e: T> => {
+		v.push(e);
+		v
+	}
+}
